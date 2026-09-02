@@ -62,7 +62,6 @@ app.post('/convert', (req, res) => {
     '--no-playlist',
     '--restrict-filenames',
     '--match-filter', `duration <= ${MAX_DURATION_SECONDS}`,
-    '--extractor-args', 'youtube:player_client=android,tv',
     '--js-runtimes', 'node',
     '--print', 'after_move:filepath',
     '-o', outputTemplate,
