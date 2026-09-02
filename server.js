@@ -95,11 +95,11 @@ app.post('/convert', (req, res) => {
       // Once things are working reliably, you can put back the generic
       // 'Conversion failed. See server logs for details.' message instead
       // if you don't want internal errors visible to whoever uses this.
-      const lastLine = stderr.trim().split('\n').filter(Boolean).pop() || '(no output)';
+      const lastLines = stderr.trim().split('\n').filter(Boolean).slice(-6).join(' | ') || '(no output)';
       return res.status(500).json({
         error: tooLong
           ? `Video is longer than the ${MAX_DURATION_SECONDS / 60}-minute limit.`
-          : `yt-dlp error: ${lastLine}`,
+          : `yt-dlp error: ${lastLines}`,
       });
     }
 
