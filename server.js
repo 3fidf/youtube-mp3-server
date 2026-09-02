@@ -48,6 +48,12 @@ app.post('/convert', (req, res) => {
     '--no-playlist',
     '--restrict-filenames',
     '--match-filter', `duration <= ${MAX_DURATION_SECONDS}`,
+    // The web client requires a proof-of-origin token that yt-dlp can't
+    // produce from a plain server request, which is what triggers
+    // "Sign in to confirm you're not a bot" on datacenter IPs like
+    // Render's. The android/tv clients don't require that token.
+    '--extractor-args', 'youtube:player_client=android,tv',
+    '--js-runtimes', 'node',
     '--print', 'after_move:filepath',
     '-o', outputTemplate,
     url,
@@ -69,10 +75,15 @@ app.post('/convert', (req, res) => {
     if (code !== 0) {
       console.error(stderr);
       const tooLong = /does not pass filter/i.test(stderr);
+      // TEMP: surfacing the real yt-dlp error to the client for debugging.
+      // Once things are working reliably, you can put back the generic
+      // 'Conversion failed. See server logs for details.' message instead
+      // if you don't want internal errors visible to whoever uses this.
+      const lastLine = stderr.trim().split('\n').filter(Boolean).pop() || '(no output)';
       return res.status(500).json({
         error: tooLong
           ? `Video is longer than the ${MAX_DURATION_SECONDS / 60}-minute limit.`
-          : 'Conversion failed. See server logs for details.',
+          : `yt-dlp error: ${lastLine}`,
       });
     }
 
