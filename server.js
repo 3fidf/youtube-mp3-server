@@ -63,6 +63,7 @@ app.post('/convert', (req, res) => {
     '--restrict-filenames',
     '--match-filter', `duration <= ${MAX_DURATION_SECONDS}`,
     '--js-runtimes', 'node',
+    '--remote-components', 'ejs:github',
     '--print', 'after_move:filepath',
     '-o', outputTemplate,
   ];
