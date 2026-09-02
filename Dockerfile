@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:22-slim
 
 # yt-dlp needs python3 + ffmpeg at runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
