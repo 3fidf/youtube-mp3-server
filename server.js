@@ -20,6 +20,19 @@ const DOWNLOAD_DIR = path.join(__dirname, 'downloads');
 const MAX_DURATION_SECONDS = 20 * 60; // reject anything longer than 20 min
 const FILE_TTL_MS = 60 * 60 * 1000;   // delete converted files after 1 hour
 
+// Render's "Secret Files" feature mounts uploaded files at /etc/secrets/<filename>.
+// If you've uploaded a cookies.txt there (exported from your own logged-in
+// YouTube session), yt-dlp will use it to authenticate requests -- this is
+// what actually clears the "Sign in to confirm you're not a bot" wall,
+// since switching player clients alone often isn't enough anymore.
+const COOKIES_PATH = '/etc/secrets/cookies.txt';
+const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
+if (HAS_COOKIES) {
+  console.log('cookies.txt found -- yt-dlp will authenticate with it.');
+} else {
+  console.log('No cookies.txt found at ' + COOKIES_PATH + ' -- running without authentication.');
+}
+
 if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR);
 
 const app = express();
@@ -41,23 +54,26 @@ app.post('/convert', (req, res) => {
   const id = crypto.randomBytes(8).toString('hex');
   const outputTemplate = path.join(DOWNLOAD_DIR, `${id}-%(title)s.%(ext)s`);
 
-  const ytdlp = spawn('yt-dlp', [
+  const args = [
     '-x',
     '--audio-format', 'mp3',
     '--audio-quality', '0',
     '--no-playlist',
     '--restrict-filenames',
     '--match-filter', `duration <= ${MAX_DURATION_SECONDS}`,
-    // The web client requires a proof-of-origin token that yt-dlp can't
-    // produce from a plain server request, which is what triggers
-    // "Sign in to confirm you're not a bot" on datacenter IPs like
-    // Render's. The android/tv clients don't require that token.
     '--extractor-args', 'youtube:player_client=android,tv',
     '--js-runtimes', 'node',
     '--print', 'after_move:filepath',
     '-o', outputTemplate,
-    url,
-  ]);
+  ];
+
+  if (HAS_COOKIES) {
+    args.push('--cookies', COOKIES_PATH);
+  }
+
+  args.push(url);
+
+  const ytdlp = spawn('yt-dlp', args);
 
   let stdout = '';
   let stderr = '';
