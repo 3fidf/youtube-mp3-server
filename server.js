@@ -20,17 +20,18 @@ const DOWNLOAD_DIR = path.join(__dirname, 'downloads');
 const MAX_DURATION_SECONDS = 20 * 60; // reject anything longer than 20 min
 const FILE_TTL_MS = 60 * 60 * 1000;   // delete converted files after 1 hour
 
-// Render's "Secret Files" feature mounts uploaded files at /etc/secrets/<filename>.
-// If you've uploaded a cookies.txt there (exported from your own logged-in
-// YouTube session), yt-dlp will use it to authenticate requests -- this is
-// what actually clears the "Sign in to confirm you're not a bot" wall,
-// since switching player clients alone often isn't enough anymore.
-const COOKIES_PATH = '/etc/secrets/cookies.txt';
-const HAS_COOKIES = fs.existsSync(COOKIES_PATH);
+// Render's "Secret Files" feature mounts uploaded files at /etc/secrets/<filename>,
+// but that mount is read-only -- and yt-dlp needs to write updated session
+// cookies back to the file after each use, which fails on a read-only path.
+// So we copy it once at startup to a writable location and use that copy.
+const SECRET_COOKIES_PATH = '/etc/secrets/cookies.txt';
+const COOKIES_PATH = path.join(__dirname, 'cookies.txt');
+const HAS_COOKIES = fs.existsSync(SECRET_COOKIES_PATH);
 if (HAS_COOKIES) {
-  console.log('cookies.txt found -- yt-dlp will authenticate with it.');
+  fs.copyFileSync(SECRET_COOKIES_PATH, COOKIES_PATH);
+  console.log('cookies.txt found -- copied to a writable path for yt-dlp to use.');
 } else {
-  console.log('No cookies.txt found at ' + COOKIES_PATH + ' -- running without authentication.');
+  console.log('No cookies.txt found at ' + SECRET_COOKIES_PATH + ' -- running without authentication.');
 }
 
 if (!fs.existsSync(DOWNLOAD_DIR)) fs.mkdirSync(DOWNLOAD_DIR);
